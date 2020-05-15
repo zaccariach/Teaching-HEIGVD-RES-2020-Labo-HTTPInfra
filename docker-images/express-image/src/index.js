@@ -1,43 +1,38 @@
-var Chance = require('chance');
-var chance = new Chance();
+var chance = require('chance');
+var chance = new chance();
 
 var express = require('express');
 var app = express();
 
 app.get('/', function(req, res){
-    res.send(generateStudents());
+    res.send(generateAnimals());
 });
 
 app.listen(3000, function(){
     console.log('Accepting HTTP requests on port 3000!');
 });
 
-function generateStudents(){
-	var numberOfStudents = chance.integer({
+
+function generateAnimals(){
+	var numberOfAnimals = chance.integer({
 		min : 1,
 		max : 10
 	});
 	
-	console.log(numberOfStudents);
+	console.log(numberOfAnimals);
 	
-	var students = [];
-	for(var i = 0; i < numberOfStudents; ++i){
+	var animals = [];
+	
+	for(var i = 0; i < numberOfAnimals; ++i){
         var gender = chance.gender();
-		var birthYear = chance.year({
-			min: 1986,
-			max: 1996
+		animals.push({
+            'race'      : chance.animal(),
+            'name'      : chance.first({ gender: gender }),
+            'gender'    : gender,
+            'age'       : chance.age({type: 'child'}),
+            'country'   : chance.country({ full: true })
 		});
-		students.push({
-            firstName: chance.first({
-				gender: gender
-			}),
-			lastName: chance.last(),
-			gender: gender,
-			birthday: chance.birthday({
-				year: birthYear
-			})
-		});
-	};
-	console.log(students);
-	return students;
+	}
+	console.log(animals);
+	return animals;
 }

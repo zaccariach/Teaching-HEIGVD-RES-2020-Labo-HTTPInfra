@@ -77,60 +77,54 @@ Puis, afin d'utiliser les modules _chance_ et _express_ , il faut taper `npm ins
 Ain de vérifier le fonctionnement de tout ceci, il a fallu créer un fichier `index.js` dans ce dossier `src` et implémenter l'application comme suit: 
 
 ```bash
-var Chance = require('chance');
-var chance = new Chance();
+var chance = require('chance');
+var chance = new chance();
 
 var express = require('express');
 var app = express();
 
 app.get('/', function(req, res){
-    res.send(generateStudents());
+    res.send(generateAnimals());
 });
 
 app.listen(3000, function(){
     console.log('Accepting HTTP requests on port 3000!');
 });
 
-function generateStudents(){
-	var numberOfStudents = chance.integer({
+function generateAnimals(){
+	var numberOfAnimals = chance.integer({
 		min : 1,
 		max : 10
 	});
 	
-	console.log(numberOfStudents);
+	console.log(numberOfAnimals);
 	
-	var students = [];
-	for(var i = 0; i < numberOfStudents; ++i){
+	var animals = [];
+	
+	for(var i = 0; i < numberOfAnimals; ++i){
         var gender = chance.gender();
-		var birthYear = chance.year({
-			min: 1986,
-			max: 1996
+		animals.push({
+            'race'      : chance.animal(),
+            'name'      : chance.first({ gender: gender }),
+            'gender'    : gender,
+            'age'       : chance.age({type: 'child'}),
+            'country'   : chance.country({ full: true })
 		});
-		students.push({
-            firstName: chance.first({
-				gender: gender
-			}),
-			lastName: chance.last(),
-			gender: gender,
-			birthday: chance.birthday({
-				year: birthYear
-			})
-		});
-	};
-	console.log(students);
-	return students;
+	}
+	console.log(animals);
+	return animals;
 }
 ```
 
-Nous voyons ici que l'on écoute les requêtes sur le port 3000 et qu'à toute requête de type GET sur la cible '/', nous y générons un tableau avec un nombre d'étudiant aléatoire (1 à 10) possédant un genre, une date de naissance, un nom et prénom. Ensuite, ce tableau au format _json_ est envoyé en réponse au client connecté sur le port 3000 (à l'aide de telnet ou d'un naviagateur web).
+Nous voyons ici que l'on écoute les requêtes sur le port 3000 et qu'à toute requête de type *GET* sur la cible '/', nous y générons un tableau avec un nombre d'animaux aléatoire (1 à 10) possédant une race, un nom, un genre, un age et un pays. Ensuite, ce tableau au format _json_ est envoyé en réponse au client connecté sur le port 3000 (à l'aide de telnet ou d'un naviagateur web).
 
 <u>**Test**</u>  
 
 On ouvre une invite de commande à l'endroit où se trouve le fichier Dockerfile afin de créer une image et de lancer le container à partir de cette dernière comme suit: 
 
 ```
-docker build -t res/express_students .
-docker run -p 9091:3000 res/express_students
+docker build -t res/express_animals .
+docker run -p 9091:3000 res/express_animals
 ```
 
 Il faut ensuite ouvrir un navigateur web, taper: `http://localhost:9091/` et le contenu du tableau des étudiants s'affiche. Il est également possible comme mentionné dans le webcast d'utiliser l'application Postman pour envoyer la requête **GET** et recevoir la réponse du serveur. Une autre solution possible est aussi d'utiliser telnet et d'effectuer une requête **HTTP** (`GET / HTTP/1.0 CRLF`).
