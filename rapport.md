@@ -135,6 +135,10 @@ docker run -p 9091:3000 res/express_students
 
 Il faut ensuite ouvrir un navigateur web, taper: `http://localhost:9091/` et le contenu du tableau des étudiants s'affiche. Il est également possible comme mentionné dans le webcast d'utiliser l'application Postman pour envoyer la requête **GET** et recevoir la réponse du serveur. Une autre solution possible est aussi d'utiliser telnet et d'effectuer une requête **HTTP** (`GET / HTTP/1.0 CRLF`).
 
+Voici le résultat avec le navigateur web :
+
+![step2-website](img-rapport/step2-website.PNG)
+
 # Step 3: Reverse proxy with apache (static configuration)
 # Step 4: AJAX requests with JQuery
 # Step 5: Dynamic reverse proxy configuration
