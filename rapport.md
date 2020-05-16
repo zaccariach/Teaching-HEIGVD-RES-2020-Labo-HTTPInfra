@@ -2,8 +2,6 @@
 
 **Auteurs : Christian Zaccaria, Nenad Rajic**
 
-[TOC]
-
 # Instructions et Objectifs
 L'objectif de ce laboratoire est de pouvoir se familiariser avec les outils logiciels qui permettent de construire une infrastructure Web : c'est à dire un environnement permettant de fournir du contenu statique et dynamique aux navigateurs web. Pour cela, nous utiliserons _Serveur Apache httpd_ (pouvant agir à la fois comme serveur HTTP et reverse proxy) ainsi que _express.js_ (framework JS facilitant l'écriture d'applications web dynamiques).
 
@@ -134,7 +132,117 @@ Voici le résultat avec le navigateur web :
 ![step2-website](img-rapport/step2-website.PNG)
 
 # Step 3: Reverse proxy with apache (static configuration)
+
+**<u>But</u>**
+
+Mise en place d'un reverse proxy servant comme point d'entrée dans l'infrastructure contenant nos deux serveurs : le web serveur statique (**apache httpd**) et le web serveur dynamique (**express.js**). Ces derniers ne seront donc plus accessibles directement comme dans les étapes précédentes mais toutes requêtes AJAX passent uniquement par le reverse proxy en utilisant le *same-origin policy* permettant d'appliquer la politique de "tout script venant d'un certain nom de domaine peut faire des requêtes uniquement vers le même nom de domaine".
+
+<u>**Réalisation**</u> 
+
+En premier, nous avons créé une branche *fb-apache-reverse-proxy* à partir de la branche *fb-express-dynamic.* Deux containers sont lancés : l'un étant le serveur web static et l'autre le serveur web dynamique à l'aide des images générées aux précédentes étapes. 
+
+Les commandes sont les suivantes:
+
+```bash
+docker run -d --name apache_static res/apache_php
+docker run -d --name express_dynamic res/express_animals
+```
+
+Pour cette étape, il faut donc un container supplémentaire pour le reverse proxy. Un fichier Dockerfile est crée afin de créer ce container et se compose comme suit: 
+
+```dockerfile
+FROM php:7.2-apache
+
+COPY conf/ /etc/apache2
+
+RUN a2enmod proxy proxy_http
+RUN a2ensite 000-* 001-*
+```
+
+Nous reprenons donc l'image en version 7.2 du serveur apache avec php et allons copier un dossier local `conf`, qui va être prochainement créé, dans le dossier `/etc/apache2` du container. Ensuite, il faut lancer les modules `a2enmod` pour activer les modules *proxy* et *proxy_http* et `a2ensite` pour activer les sites avec le nom de fichier `000-` et `001-`.
+
+Avant de créer l'image, nous avons créé un dossier `conf/sites-available` en local à l'endroit où se trouvait notre Dockerfile et y avons ajouté 2 fichiers: `000-default.conf` et `001-reverse-proxy.conf`. 
+
+**Contenu du fichier** `000-default.conf`: 
+
+```
+<VirtualHost *:80>
+</VirtualHost>
+```
+
+Cette implémentation permet d'être plus strict ainsi que de définir l'hôte virtuel par défaut. On ne donne pas accès à du contenu / redirections et nous ne permettons pas d'afficher un message d'erreur en cas / d'accès non souhaité.
+
+**Contenu du fichier** `001-reverse-proxy.conf`: 
+
+```bash
+<VirtualHost *:80>
+	ServerName demo.res.ch
+
+	#ErrorLog ${APACHE_LOG_DIR}/error.log
+	#CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+	ProxyPass "/api/animals/" "http://172.17.0.3:3000/"
+	ProxyPassReverse "/api/animals/" "http://172.17.0.3:3000/"
+
+	ProxyPass "/" "http://172.17.0.2:80/"
+    ProxyPassReverse "/" "http://172.17.0.2:80/"
+</VirtualHost>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+
+```
+
+On va rediriger les requêtes `/` et `/api/animals/` vers l'IP de leur container respectif grâce aux mots-clés de mapping `ProxyPass` et `ProxyPassReverse`. Les deux IP peuvent être obtenues grâce à la commande suivante : 
+
+```bash
+docker inspect nom-du-container | grep -i ipaddress
+```
+
+> **Attention : ** il est important de noter que la configuration statique est très fragile (notamment lorsqu'on ne sait pas ce que l'on fait) : en effet, c'est une très mauvaise idée d'hardcoder les adresses IP dans le reverse proxy car les containers Dockers possèdent des adresses IP accordées de manières dynamique. Il est donc toujours nécessaires de lancer les containers que le *reverse proxy* va utiliser, vérifier leur adresse IP afin de pouvoir insérer l'IP dans les *hôtes virtuels* pour ensuite *build* une image, etc... Ceci peut donc vite devenir un casse tête ...
+>
+> On verras par la suite qu'il existe _Docker compose_ permettant de faire ceci d'une façon bien plus "propre" ainsi que dynamique.
+
+Finalement, avec la commande suivante, le container reverse proxy a été créé puis démarré comme suit: 
+
+```bash
+docker build -t res/apache_rp .
+docker run -p 8080:80 res/apache_rp
+```
+
+Une dernière modification a été nécessaire sur notre machine, à savoir le fichier `/etc/hosts` sur un système Unix et `C:\Windows\System32\drivers\etc\hosts` sur un système Windows. Il a donc fallu ajouter une résolution du nom DNS `demo.res.ch` à l'adresse `localhost` comme suit (ceci est car nous utilisons _Docker for Windows_, car si l'on utilisait _Docker Toolbox_ on aurait une autre adresse IP et non localhost --> typiquement 192.168.99.100). 
+
+```bash
+127.0.0.1 demo.res.ch
+```
+
+<u>**Test**</u> 
+
+On ouvre un navigateur web et de taper les lignes suivantes pour être redirigé soit sur le site web static soit sur notre tableau d'animaux.
+
+```
+http://demo.res.ch:8080/
+```
+
+![step3-website](img-rapport/step3-website.PNG)
+
+```
+http://demo.res.ch:8080/api/animals/
+```
+
+![step3-website-animals](img-rapport/step3-website-animals.PNG)
+
+On va réessayer afin de vérifier que le contenu est chargé de manière dynamique.
+
+![step3-website-animals2](img-rapport/step3-website-animals2.PNG)
+
+Finalement, on peut vérifier que nous n'avons aucun accès autre que par le _reverse proxy_ en testant directement d'attendre les 2 serveurs. (l'argument `-C` est présent afin d'utiliser les fin de lignes supportées par le protocole _HTTP_ : à savoir `CRLF`)
+
+![step3-cannot-access-servers](img-rapport/step3-cannot-access-servers.PNG)
+
+Ceci se confirme par le fait qu'aucun _port mapping_ n'a été effectué lorsqu'on a créé les containers Docker. 
+
 # Step 4: AJAX requests with JQuery
+
 # Step 5: Dynamic reverse proxy configuration
 # Additional steps
 ## Load balancing: multiple server nodes
