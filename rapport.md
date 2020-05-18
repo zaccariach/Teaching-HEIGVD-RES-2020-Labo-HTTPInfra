@@ -325,8 +325,11 @@ Afin de vous montrer le bon fonctionnement de notre infrastructure, nous avons d
 
 
 
-
 # Step 5: Dynamic reverse proxy configuration
+
+<u>**But **</u>
+
+Pourvoir remplacer la configuration "hardcodée" afin de la rendre dynamique en passant les configuration IP via le flag `-e` de la commande `docker run` ainsi que exécuter un script personnalisée permettant de récupérer les variables environnement afin de générer un fichier de configuration.
 
 # Additional steps
 ## Load balancing: multiple server nodes
