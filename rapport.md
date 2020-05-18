@@ -198,7 +198,7 @@ On va rediriger les requêtes `/` et `/api/animals/` vers l'IP de leur container
 docker inspect nom-du-container | grep -i ipaddress
 ```
 
-> **Attention : ** il est important de noter que la configuration statique est très fragile (notamment lorsqu'on ne sait pas ce que l'on fait) : en effet, c'est une très mauvaise idée d'hardcoder les adresses IP dans le reverse proxy car les containers Dockers possèdent des adresses IP accordées de manières dynamique. Il est donc toujours nécessaires de lancer les containers que le *reverse proxy* va utiliser, vérifier leur adresse IP afin de pouvoir insérer l'IP dans les *hôtes virtuels* pour ensuite *build* une image, etc... Ceci peut donc vite devenir un casse tête ...
+> **Attention  ! ** Il est important de noter que la configuration statique est très fragile (notamment lorsqu'on ne sait pas ce que l'on fait) : en effet, c'est une très mauvaise idée "d'hardcoder" les adresses IP dans le reverse proxy car les containers Dockers possèdent des adresses IP accordées de manières dynamique. Il est donc toujours nécessaires de lancer les containers que le *reverse proxy* va utiliser, vérifier leur adresse IP afin de pouvoir insérer l'IP dans les *hôtes virtuels* pour ensuite *build* une image, etc... Ceci peut donc vite devenir un casse tête ...
 >
 > On verras par la suite qu'il existe _Docker compose_ permettant de faire ceci d'une façon bien plus "propre" ainsi que dynamique.
 
@@ -242,6 +242,85 @@ Finalement, on peut vérifier que nous n'avons aucun accès autre que par le _re
 Ceci se confirme par le fait qu'aucun _port mapping_ n'a été effectué lorsqu'on a créé les containers Docker. 
 
 # Step 4: AJAX requests with JQuery
+
+<u>**But**</u> 
+
+Pouvoir implémenter une requête *AJAX* en utilisant la librairie Javascript nommée JQuery. On va donc envoyer des requêtes *AJAX*, à partir de la page principale, vers le backend dynamique afin de récupérer la liste d'animaux générée aléatoirement afin de mettre à jour une partie de l'interface utilisateur.
+
+<u>**Réalisation**</u> 
+
+Nous avons créé une branche *fb-ajax-jquery* à partir de la branche *fb-apache-reverse-proxy.* Nous avons ensuite ajouté une ligne supplémentaire dans les *Dockerfile* de chaque image effectué dans les 3 premiers points de ce laboratoire afin d'effectuer une mise à jour des packages et installer l'éditeur `vim` afin de pouvoir effectuer des modifications sur des fichiers.
+
+```dockerfile
+RUN apt-get update && apt-get install -y vim
+```
+
+Vu que les *Dockerfile* ont été modifiés, nous devons les générer à nouveau. Il suffit donc de relancer les commandes `build` et `run` comme décrites dans les étapes précédentes mais en suivant bien l'ordre des étapes de ce laboratoire : en effet les adresses IP des containers ont été "hardcodées", ce qui nous contraint à devoir obtenir les bonnes adresses IP aux bon containers.
+
+Ensuite, nous avons dû ajouter la ligne suivante à la fin du body du fichier `content/index.html` (présent dans le serveur _apache_) permettant d'indiquer où se trouve le script `animals.js`: 
+
+```bash
+  <!-- Custom script to load animals -->
+  <script src="js/animals.js"></script>
+```
+
+Puis, nous avons créé le fichier `/js/animals.js` (toujours des dossiers du serveur _apache_) qui contient les lignes suivantes: 
+
+```bash
+$(function() {
+        console.log("Loading animals");
+
+        function loadAnimals() {
+                $.getJSON( "/api/animals/", function( animals ) {
+                        console.log(animals);
+                        var message = "No animal is here";
+                        if( animals.length > 0 ) {
+                                message = "Race : " + animals[0].race + " / Nom : " + 									animals[0].name ;
+                        }
+                        $(".masthead-subheading").text(message);
+                });
+        };
+
+        loadAnimals();
+        setInterval( loadAnimals, 2000);
+});
+```
+
+Quand la librairie JQuery est chargée, la fonction est appelée. On définit donc une fonction où l'on définit l'URL contenant les résultats à récupérer et on appelle la fonction de callback lorsqu'on les reçoit. On va alors vérifier que la liste soit pleine et tout simplement construire notre chaîne de caractère avec la race de l'animal et son nom. Puis, ce message est placé dans une classe de la page qui va afficher le message (dans le cas présent dans la classe _masthead-subheading_, ceci sera visible juste sur le message _Welcome to RES_). 
+
+Cette fonction va être appelé à intervalle de 2000 ms, affichant les différents animaux du tableau sur la page _index.html_.
+
+> **Attention !** Il est important de noter que sans _Reverse proxy_ cette étape ne fonctionnerait pas, car nous n'avons pas défini de _port mapping_ permettant de faire le lien entre notre machine et les différents containers : si l'on essaie l'adresse `demo.res.ch:80 ou demo.res.ch:3000` rien ne se passera à cause du _port mapping_. 
+>
+> Nous n'excluons pas non plus l'hypothèse venant de la _Same-origin policy_ : en effet si aucun nom de domaine n'était spécifié, nous ne pensons pas qu'avec uniquement des adresses IP ceci puisse se faire.
+
+**<u>Test</u>**
+
+Premièrement, il faut d'abord supprimer les images qui ont été créées puis les générer à nouveau et les lancer en tapant les commandes `docker build` et `docker run` de chaque étape et cela dans l'ordre des étapes (afin que les modifications sur _index.html_, l'ajout de _animals.js_, ainsi que l'installation de _vim_ puissent avoir lieu). 
+
+Commandes pour re-build les images
+
+```
+docker build -t res/apache_php . 
+docker build -t res/express_animals .
+docker build -t res/apache_rp .
+```
+
+Commandes pour lancer les containers (ces commandes doivent être lancé dans cet ordre prédéfini et une vérification des IP des containers _apache_static_ et _express_static_ est nécessaire afin de vérifier qu'elle possèdent bien l'adresse définie dans les _localhosts_).
+
+```
+docker run -d --name apache_static res/apache_php
+docker run -d --name express_static res/express_animals
+docker run -d -p 8080:80 --name apache_rp res/apache_rp
+```
+
+Puis, il faut ouvrir un navigateur web et taper `demo.res.ch:8080`. À partir de là, la classe choisie sur la page du site, pour contenir l'information récupérée depuis la liste, se mettra à jour toutes les 2000 ms.
+
+![step4-website](img-rapport/step4-website.PNG)
+
+On remarque alors que 2000ms plus tard l'animal affiché à changé !
+
+![step4-website2](img-rapport/step4-website2.PNG)
 
 # Step 5: Dynamic reverse proxy configuration
 # Additional steps
