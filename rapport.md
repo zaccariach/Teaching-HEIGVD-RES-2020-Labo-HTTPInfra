@@ -318,11 +318,16 @@ Puis, il faut ouvrir un navigateur web et taper `demo.res.ch:8080`. À partir de
 
 ![step4-website](img-rapport/step4-website.PNG)
 
-On remarque alors que 2000ms plus tard l'animal affiché à changé !
+Afin de vous montrer le bon fonctionnement de notre infrastructure, nous avons décidé de vous créer un petit _gif_ afin de vous montrer le changement d'animal tous les **2000 ms**. 
+> Dans le _gif_ le port mappé avec le reverse proxy est le 9090 et non le 8080 (car nous avons fait la vidéo après coup et remarqué l'erreur après). Néanmoins ceci n'influence en aucun lieu le résultat à obtenir.
 
-![step4-website2](img-rapport/step4-website2.PNG)
+![ajax-queries](img-rapport/ajax-queries.gif)
+
+
+
 
 # Step 5: Dynamic reverse proxy configuration
+
 # Additional steps
 ## Load balancing: multiple server nodes
 ## Load balancing: round-robin vs sticky sessions
