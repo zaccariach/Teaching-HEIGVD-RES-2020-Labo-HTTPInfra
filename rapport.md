@@ -326,9 +326,9 @@ Afin de vous montrer le bon fonctionnement de notre infrastructure, nous avons d
 ![ajax-queries](img-rapport/ajax-queries.gif)
 
 
-
 # Step 5: Dynamic reverse proxy configuration
 
+fb-dynamic-configuration
 <u>**But**</u>
 
 Pourvoir remplacer la configuration "hardcodée" afin de la rendre dynamique en passant les configuration IP via le flag `-e` de la commande `docker run` ainsi que exécuter un script personnalisée permettant de récupérer les variables environnement afin de générer un fichier de configuration.
@@ -445,8 +445,7 @@ echo "Reverse proxy IP: $proxyIP"
 read -p "Press to exit"
 ```
 
-# Additionals steps
-
+# Additional steps
 ## Load balancing: multiple server nodes
 ## Load balancing: round-robin vs sticky sessions
 ## Dynamic cluster management
