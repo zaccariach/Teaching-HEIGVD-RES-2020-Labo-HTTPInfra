@@ -11,6 +11,8 @@ Finalement, ce laboratoire permet de pratiquer l'utilisation de Docker : pour ce
 
 **Il est important de noter que notre laboratoire a été réalisé à l'aide de _Docker Desktop for Windows, version 2.3.0.2_.** 
 
+> En outre, nous avons décidé de _merge_ pour chaque _step_ effectué directement dans le _master_. Nous ne savons pas si cela est forcément une bonne pratique, mais pensons que ceci permet d'avoir directement dans _master_ la dernière étape finie et vérifiée. 
+
 # Step 1 : Static HTTP server with apache httpd
 
 <u>**But**</u>
@@ -324,9 +326,124 @@ Afin de vous montrer le bon fonctionnement de notre infrastructure, nous avons d
 ![ajax-queries](img-rapport/ajax-queries.gif)
 
 
-
-
 # Step 5: Dynamic reverse proxy configuration
+
+fb-dynamic-configuration
+<u>**But**</u>
+
+Pourvoir remplacer la configuration "hardcodée" afin de la rendre dynamique en passant les configuration IP via le flag `-e` de la commande `docker run` ainsi que exécuter un script personnalisée permettant de récupérer les variables environnement afin de générer un fichier de configuration.
+
+<u>**Réalisation**</u>
+
+Nous avons commencé par créer une branche *fb-dynamic-configuration* à partir de la branche *fb-ajax-jquery*. Nous avons ensuite créé un fichier `apache2-foreground`, au niveau du *Dockerfile*, repris depuis le git officiel de *docker PHP* (v7.2-apache, https://github.com/docker-library/php/blob/master/apache2-foreground), et rajouté les lignes ci-dessous permettant d'afficher en premier lieu les variables d'environnement passée en paramètre lors de la commande ``docker run` (avec le paramètre `-e` ) ainsi que de  copier le fichier de config généré en PHP.
+
+```bash
+#Add setup for RES lab
+echo "Setup for the RES lab..."
+echo "Static app URL: $STATIC_APP"
+echo "Dynamic app URL: $DYNAMIC_APP"
+php /var/apache2/templates/config-template.php > /etc/apache2/sites-available/001-reverse-proxy.conf
+```
+
+Une bonne pratique pour être sur que le fichier puisse être exécutable lorsqu'il est sur le _reverse proxy_ . 
+
+```bash
+chmod 755 apache2-foreground
+```
+
+Nous avons créé le fichier modèle de config PHP (`apache-reverse-proxy/templates/config-template.php`) permettant de récupérer les variables d’environnement passées en paramètre afin de les insérer à la configuration qui sera ensuite copiée dans le fichier `/etc/apache2/sites-available/001-reverse-proxy.conf`.
+
+```php
+<?php
+    $dynamic_app = getenv('DYNAMIC_APP');
+    $static_app = getenv('STATIC_APP');
+?>
+
+<VirtualHost *:80>
+	ServerName demo.res.ch
+	
+	ProxyPass '/api/animals/' 'http://<?php print "$dynamic_app"?>/'
+	ProxyPassReverse '/api/animals/' 'http://<?php print "$dynamic_app"?>/'
+	
+	ProxyPass '/' 'http://<?php print "$static_app"?>/'
+	ProxyPassReverse '/' 'http://<?php print "$static_app"?>/'
+</VirtualHost>
+
+```
+
+Ensuite, le *Dockerfile* a été modifié afin de prendre ces changements en compte.
+
+> Attention : Il est très important que ce fichier `apache2-foreground` soit en format _UNIX_ (**LF** UNIQUEMENT !) donc il faut le convertir lorsqu'on travaille sur *Windows*. On peut facilement le convertir avec _Notepad++_ par exemple. 
+>
+> Cependant, nous voulons éviter tous les risques et donc dans le _reverse proxy_ nous installons aussi un utilitaire appelant _dos2unix_ permettant de convertir les chaines `CRLF` en `FL` . Nous spécifions aussi dans le _Dockerfile_ la conversion du fichier : cela est surement inutile lorsqu'on utilise un environnement Unix, cependant vaut mieux prévenir que guérir !
+
+```dockerfile
+FROM php:7.2-apache
+
+RUN apt-get update && apt-get install -y vim && apt-get install dos2unix
+
+COPY templates /var/apache2/templates
+COPY conf/ /etc/apache2
+
+COPY apache2-foreground /usr/local/bin/
+RUN cd /usr/local/bin/ && dos2unix apache2-foreground
+
+RUN a2enmod proxy proxy_http
+RUN a2ensite 000-* 001-*
+
+```
+
+Finalement, il est possible de modifier le fichier `conf/sites-available/001-reverse-proxy.conf` afin de mettre en commentaires les commandes `proxyPass` et `ProxyPassReverse`, car elles seront, de toutes manière, écrasées par la copie de la config effectuée par le script `apache2-foreground`. Cependant, nous ne l'avons pas effectué car ceci permet toujours d'avoir le _Step 1_ sans aucune modification.
+
+Nous pouvons donc refaire un *build* de l’image *res/apache_rp* en se situant dans le répertoire contenant le *Dockerfile* avec la commande suivante: `docker build -t res/apache_rp .`
+
+<u>**Test **</u>
+
+Nous avons démarré plusieurs containers de l’image `res/apache_php` (sans nom, sauf un se nommant `apache_static` que l'on va utiliser) et plusieurs containers de l’image `res/express_animals` (sans nom, sauf un se nommant `express_dynamics` l'on va utiliser). 
+
+Nous cherchons ensuite l’adresse IP des containers  `apache_static` et `express_dynamic` (avec la commande `docker inspect NOM_DU_CONTAINER | grep -i ipaddress` afin de lancer notre container pour le _reverse_proxy_ avec la commande suivante.
+
+> Dans la commande suivante, le x des 2 adresses IP est à remplacer par celui de `apache_static` et `express_dynamic`.
+
+> 
+
+```bash
+docker run -d -e STATIC_APP=172.17.0.x:80 -e DYNAMIC_APP=172.17.0.x:3000 --name apache_rp -p 8080:80 res/apache_rp
+```
+
+Nous vérifions alors que tout exécute correctement en allant à l'adresse suivante (toutes les étapes précédentes doivent toujours fonctionner).
+
+```
+http://demo.res.ch:8080/
+```
+
+![step5-website](img-rapport/step5-website.PNG)
+
+Finalement, ne trouvant pas que cette étape est totalement "dynamique", nous avons décidé de créer un script *bash* permettant de démarrer les trois containers (`apache_static, express_dynamic et apache_rp`) et d'automatiser la recherche de l'adresse IP des deux serveurs. Ceci permet d'ajouter un petit supplément à ce laboratoire ainsi qu'à la partie suivie par des podcasts ! 
+
+Voici le script créé (testé et approuvé sur Ubuntu ainsi que Windows)
+
+```
+#! /bin/bash
+
+docker kill $(docker ps -q) > /dev/null
+docker rm $(docker ps -a -q)  > /dev/null
+
+staticContainer=$(docker run -d  --name apache_static res/apache_php)
+dynamicContainer=$(docker run -d --name dynamic_express res/express_animals)
+
+staticIP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $staticContainer)
+dynamicIP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dynamicContainer)
+
+
+proxyName=$(docker run -d --name apache_rp -e STATIC_APP=$staticIP:80 -e DYNAMIC_APP=$dynamicIP:3000 -p 8080:80 res/apache_rp)
+
+proxyIP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $proxyName)
+
+echo "Infra with reverse proxy is done !"
+echo "Reverse proxy IP: $proxyIP"
+read -p "Press to exit"
+```
 
 # Additional steps
 ## Load balancing: multiple server nodes
