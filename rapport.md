@@ -397,7 +397,7 @@ Finalement, il est possible de modifier le fichier `conf/sites-available/001-rev
 
 Nous pouvons donc refaire un *build* de l’image *res/apache_rp* en se situant dans le répertoire contenant le *Dockerfile* avec la commande suivante: `docker build -t res/apache_rp .`
 
-<u>**Test **</u>
+<u>**Test**</u>
 
 Nous avons démarré plusieurs containers de l’image `res/apache_php` (sans nom, sauf un se nommant `apache_static` que l'on va utiliser) et plusieurs containers de l’image `res/express_animals` (sans nom, sauf un se nommant `express_dynamics` l'on va utiliser). 
 
@@ -450,3 +450,39 @@ read -p "Press to exit"
 ## Load balancing: round-robin vs sticky sessions
 ## Dynamic cluster management
 ## Management UI
+
+Afin de ne pas re-inventer la roue, nous avons décidé de rechercher sur le web si des images / containers permettent de mettre en place un outil regroupant l'accès ainsi que la gestion des différents containers présent sur notre machine à l'aide d'une GUI.
+
+Après différentes recherches, nous avons décidé d'utiliser l'outil nommé _Portainer_ nous permettant d'effectuer les différentes actions voulues.
+
+<u>**Réalisation**</u>
+
+Nous trouvé ce lien, nous permettant de mettre en place l'outil très facilement : https://gist.github.com/SeanSobey/344edd228922ffd4266ae7d451421ab6
+
+1. Vérifier que l'option daemon sans TLS est bien activée.
+
+   ![verifiy-daemon](img-rapport/verifiy-daemon.PNG)
+
+2. Créer un volume docker.
+
+```  
+docker volume create portainer_data
+```
+
+3. Démarrage du container avec l'image *Portainer* (nous avons choisi la version avec une authentifcation nécessaire).
+
+```  
+docker run -d -p 3040:9000 --name portainer --restart=always -v portainer_data:/data portainer/portainer -H tcp://docker.for.win.localhost:2375
+```
+
+<u>**Test**</u>
+
+Aller à l'adresse http://localhost:3040
+
+Nous arrivons sur une page permettant de créer un utilisateur. (Nous avons créer l'utilisateur *Tartenpion* et mot de passe _ResIsFun2020_)
+
+![stepUI-login](img-rapport/stepUI-login.PNG)
+
+Nous arrivons alors dans une page permettant de gérer nos différents containers /images ainsi que notre environnement _Docker_.
+
+![stepUI-GUI](img-rapport/stepUI-GUI.PNG)
