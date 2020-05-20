@@ -2,7 +2,19 @@
 
 **Auteurs : Christian Zaccaria, Nenad Rajic**
 
-[TOC]
+- [Instructions et Objectifs](#Instructions-et-Objectifs)
+- [Step 1: Static HTTP server with apache httpd](#Step-1:-Static-HTTP-server-with-apache-httpd)
+- [Step 2: Dynamic HTTP server with express.js](#Step-2:-Dynamic-HTTP-server-with-express.js)
+- [Step 3: Reverse proxy with apache (static configuration)](#Step-3:-Reverse-proxy-with-apache-(static-configuration))
+- [Step 4: AJAX requests with JQuery](#Step-4:-AJAX-requests-with-JQuery)
+- [Step 5: Dynamic reverse proxy configuration](#Step-5:-Dynamic-reverse-proxy-configuration)
+- [Additional steps](#Additional-steps)
+	- [Management UI](#Management-UI)
+	- [Load balancing: multiple server nodes](#Load-balancing:-multiple-server-nodes)
+	- [Load balancing: round-robin vs sticky sessions](#Load-balancing:-round-robin-vs-sticky-sessions)
+	- [Dynamic cluster management ](#Dynamic-cluster-management )
+
+
 
 # Instructions et Objectifs
 L'objectif de ce laboratoire est de pouvoir se familiariser avec les outils logiciels qui permettent de construire une infrastructure Web : c'est à dire un environnement permettant de fournir du contenu statique et dynamique aux navigateurs web. Pour cela, nous utiliserons _Serveur Apache httpd_ (pouvant agir à la fois comme serveur HTTP et reverse proxy) ainsi que _express.js_ (framework JS facilitant l'écriture d'applications web dynamiques).
@@ -15,7 +27,7 @@ Finalement, ce laboratoire permet de pratiquer l'utilisation de Docker : pour ce
 
 > En outre, nous avons décidé de _merge_ pour chaque _step_ effectué directement dans le _master_. Nous ne savons pas si cela est forcément une bonne pratique, mais pensons que ceci permet d'avoir directement dans _master_ la dernière étape finie et vérifiée. 
 
-# Step 1 : Static HTTP server with apache httpd
+# Step 1: Static HTTP server with apache httpd
 
 <u>**But**</u>
 
@@ -557,7 +569,7 @@ docker run -d --name express_dynamic2 res/express_animals
 A l'aide de `docker inspect` , on récupère leurs adresses IP afin de les inscrire dans la commande qui suit pour le démarrage du container *apache_rp* :
 
 ```bash
-docker run -d -e STATIC_APP1=172.17.0.2:80 -e STATIC_APP2=172.17.0.3:80 -e DYNAMIC_APP1=172.17.0.4:3000 -e DYNAMIC_APP2=172.17.0.5:3000 --name apache_rp -p 9090:80 res/apache_rp
+docker run -d -e STATIC_APP1=172.17.0.2:80 -e STATIC_APP2=172.17.0.3:80 -e DYNAMIC_APP1=172.17.0.4:3000 -e DYNAMIC_APP2=172.17.0.5:3000 --name apache_rp -p 8080:80 res/apache_rp
 ```
 
 Nous vérifions que l'accès au site est bien possible (à l'aide du navigateur) et ensuite tuons 2 containers (1 pour les serveurs statiques et 1 pour les serveurs dynamique) à l'aide de les commandes suivantes.
