@@ -40,7 +40,7 @@ Pour commencer, nous crééons une branche à partir du master nommée _fb-apach
 
 Voici donc notre fichier Dockerfile:
 
-```bash
+```dockerfile
 FROM php:7.2-apache
 
 COPY content/ /var/www/html/
@@ -54,7 +54,7 @@ Nous avons décidé de prendre le thème _FreeLancer_ sur _Boostrap_ et de le pe
 
 On ouvre une invite de commande à l'endroit où se trouve le fichier Dockerfile afin de créer une image et de lancer le container à partir de cette dernière comme suit: 
 
-```
+```dockerfile
 docker build -t res/apache_php .
 docker run -d -p 9090:80 res/apache_php
 ```
@@ -75,7 +75,7 @@ Mise en place une application web dynamique avec **Node.js** qui va retourner de
 
 En premier, nous avons créé une branche *fb-express-dynamic* à partir de la branche *fb-apache-static*. Puis, comme à l'étape précédente, nous avons mis en place un fichier Dockerfile comme suit: 
 
-```bash
+```dockerfile
 FROM node:12.16
 
 COPY src /opt/app
@@ -91,7 +91,7 @@ Puis, afin d'utiliser les modules _chance_ et _express_ , il faut taper `npm ins
 
 Ain de vérifier le fonctionnement de tout ceci, il a fallu créer un fichier `index.js` dans ce dossier `src` et implémenter l'application comme suit: 
 
-```bash
+```js
 var chance = require('chance');
 var chance = new chance();
 
@@ -137,7 +137,7 @@ Nous voyons ici que l'on écoute les requêtes sur le port 3000 et qu'à toute r
 
 On ouvre une invite de commande à l'endroit où se trouve le fichier Dockerfile afin de créer une image et de lancer le container à partir de cette dernière comme suit: 
 
-```
+```dockerfile
 docker build -t res/express_animals .
 docker run -p 9091:3000 res/express_animals
 ```
@@ -160,7 +160,7 @@ En premier, nous avons créé une branche *fb-apache-reverse-proxy* à partir de
 
 Les commandes sont les suivantes:
 
-```bash
+```dockerfile
 docker run -d --name apache_static res/apache_php
 docker run -d --name express_dynamic res/express_animals
 ```
@@ -211,7 +211,7 @@ Cette implémentation permet d'être plus strict ainsi que de définir l'hôte v
 
 On va rediriger les requêtes `/` et `/api/animals/` vers l'IP de leur container respectif grâce aux mots-clés de mapping `ProxyPass` et `ProxyPassReverse`. Les deux IP peuvent être obtenues grâce à la commande suivante : 
 
-```bash
+```dockerfile
 docker inspect nom-du-container | grep -i ipaddress
 ```
 
@@ -221,7 +221,7 @@ docker inspect nom-du-container | grep -i ipaddress
 
 Finalement, avec la commande suivante, le container reverse proxy a été créé puis démarré comme suit: 
 
-```bash
+```dockerfile
 docker build -t res/apache_rp .
 docker run -p 8080:80 res/apache_rp
 ```
@@ -268,7 +268,7 @@ Pouvoir implémenter une requête *AJAX* en utilisant la librairie Javascript no
 
 Nous avons créé une branche *fb-ajax-jquery* à partir de la branche *fb-apache-reverse-proxy.* Nous avons ensuite ajouté une ligne supplémentaire dans les *Dockerfile* de chaque image effectué dans les 3 premiers points de ce laboratoire afin d'effectuer une mise à jour des packages et installer l'éditeur `vim` afin de pouvoir effectuer des modifications sur des fichiers.
 
-```dockerfile
+```bash
 RUN apt-get update && apt-get install -y vim
 ```
 
@@ -276,14 +276,14 @@ Vu que les *Dockerfile* ont été modifiés, nous devons les générer à nouvea
 
 Ensuite, nous avons dû ajouter la ligne suivante à la fin du body du fichier `content/index.html` (présent dans le serveur _apache_) permettant d'indiquer où se trouve le script `animals.js`: 
 
-```bash
+```html
   <!-- Custom script to load animals -->
   <script src="js/animals.js"></script>
 ```
 
 Puis, nous avons créé le fichier `/js/animals.js` (toujours des dossiers du serveur _apache_) qui contient les lignes suivantes: 
 
-```bash
+```js
 $(function() {
         console.log("Loading animals");
 
@@ -317,7 +317,7 @@ Premièrement, il faut d'abord supprimer les images qui ont été créées puis 
 
 Commandes pour re-build les images
 
-```
+```dockerfile
 docker build -t res/apache_php . 
 docker build -t res/express_animals .
 docker build -t res/apache_rp .
@@ -325,7 +325,7 @@ docker build -t res/apache_rp .
 
 Commandes pour lancer les containers (ces commandes doivent être lancé dans cet ordre prédéfini et une vérification des IP des containers _apache_static_ et _express_static_ est nécessaire afin de vérifier qu'elle possèdent bien l'adresse définie dans les _localhosts_).
 
-```
+```dockerfile
 docker run -d --name apache_static res/apache_php
 docker run -d --name express_static res/express_animals
 docker run -d -p 8080:80 --name apache_rp res/apache_rp
@@ -438,7 +438,7 @@ Finalement, ne trouvant pas que cette étape est totalement "dynamique", nous av
 
 Voici le script créé `run-rp-step5.sh` (testé et approuvé sur Ubuntu ainsi que Windows)
 
-```
+```bash
 #! /bin/bash
 
 docker kill $(docker ps -q) > /dev/null
@@ -479,13 +479,13 @@ Nous avons trouvé ce lien, nous permettant de mettre en place l'outil très fac
 
 2. Créer un volume docker.
 
-```  
+```dockerfile
 docker volume create portainer_data
 ```
 
 3. Démarrage du container avec l'image *Portainer* (nous avons choisi la version avec une authentification nécessaire).
 
-```  
+```dockerfile
 docker run -d -p 3040:9000 --name portainer --restart=always -v portainer_data:/data portainer/portainer -H tcp://docker.for.win.localhost:2375
 ```
 
@@ -561,7 +561,7 @@ Finalement, il faut re-build à nouveau l'image `apache_rp` avec le nouveau *Doc
 **<u>Test</u>**
 
 On lance 2 serveurs *apache_static* et 2 serveurs *express_dynamic*. 
-```
+```dockerfile
 docker run -d --name apache_static1 res/apache_php
 docker run -d --name apache_static2 res/apache_php
 docker run -d --name express_dynamic1 res/express_animals
@@ -569,13 +569,13 @@ docker run -d --name express_dynamic2 res/express_animals
 ```
 A l'aide de `docker inspect` , on récupère leurs adresses IP afin de les inscrire dans la commande qui suit pour le démarrage du container *apache_rp* :
 
-```bash
+```dockerfile
 docker run -d -e STATIC_APP1=172.17.0.2:80 -e STATIC_APP2=172.17.0.3:80 -e DYNAMIC_APP1=172.17.0.4:3000 -e DYNAMIC_APP2=172.17.0.5:3000 --name apache_rp -p 8080:80 res/apache_rp
 ```
 
 Nous vérifions que l'accès au site est bien possible (à l'aide du navigateur) et ensuite tuons 2 containers (1 pour les serveurs statiques et 1 pour les serveurs dynamique) à l'aide de les commandes suivantes.
 
-```bash
+```dockerfile
 docker kill apache_static1
 docker kill express_dynamic2
 ```
@@ -588,7 +588,7 @@ Finalement, comme pour le _STEP 5_, nous avons crée un script permettant d'auto
 
 Voici le script créé `run-rp-stepLoadBalancing.sh` (testé et approuvé sur Ubuntu ainsi que Windows)
 
-```
+```bash
 #! /bin/bash
 
 docker kill $(docker ps -q) > /dev/null
@@ -615,5 +615,100 @@ read -p "Press to exit"
 ```
 
 ## Load balancing: round-robin vs sticky sessions
+
+<u>**But**</u>
+
+En plus d'avoir une répartiton de la charge des différents serveurs, nous voulons en plus que le *reverse proxy* puisse distribuer les requêtes HTTP avec la technique du *round-robin* pour les serveurs dynamiques et en *sticky session* pour les serveurs statiques.
+
+**<u>Réalisation</u>** 
+
+La branche *fb-loadBalancing-rr-ss* a été créée à partir de la branche *fb-loadBalancing-mutiple*.
+
+Nous avons réadapté le fichier `config-template.php` afin d'ajouter un cookie à la configuration des _sticky sessions_ afin de pouvoir "créer" une session au serveur.
+
+```
+Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+```
+
+Chaque membre doit être nommé afin de pouvoir le retrouver.
+
+```
+BalancerMember 'http://<?php print "$static_appX"?>' route=X
+```
+
+Il faut ensuite définir la session liée au cookie.
+
+ ```
+ProxySet stickysession=ROUTEID
+ ```
+
+Le fichier  `config-template.php`ressemble à ceci finalement :
+
+```php
+<?php
+ 	$dynamic_app1 = getenv('DYNAMIC_APP1');
+ 	$dynamic_app2 = getenv('DYNAMIC_APP2');
+    $static_app1 = getenv('STATIC_APP1');
+    $static_app2 = getenv('STATIC_APP2');
+?>
+
+<VirtualHost *:80>
+ ServerName demo.res.ch
+ 
+    <Location /balancer-manager>
+      SetHandler balancer-manager
+    </Location>
+    ProxyPass /balancer-manager !
+ 
+	Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+ <Proxy "balancer://dynamic_app">
+    BalancerMember 'http://<?php print "$dynamic_app1"?>' route=1
+    BalancerMember 'http://<?php print "$dynamic_app2"?>' route=2
+	ProxySet stickysession=ROUTEID
+ </Proxy>
+ 
+ <Proxy "balancer://static_app">
+    BalancerMember 'http://<?php print "$static_app1"?>'
+    BalancerMember 'http://<?php print "$static_app2"?>'
+ </Proxy>
+
+ ProxyPass '/api/animals/' 'balancer://dynamic_app/'
+ ProxyPassReverse '/api/animals/' 'balancer://dynamic_app'
+ 
+ ProxyPass '/' 'balancer://static_app/'
+ ProxyPassReverse '/' 'balancer://static_app/'
+</VirtualHost>
+```
+
+Puis, nous avons modifié le Dockerfile afin d'y ajouter le module `headers`.
+
+```dockerfile
+RUN a2enmod proxy proxy_http proxy_balancer lbmethod_byrequests headers
+```
+
+<u>**Test**</u>
+
+<u>Round-Robin</u>
+
+Nous lançons toute l'infrastructure similaire à l'étape [Load balancing: multiple server nodes](#load-balancing-multiple-server-nodes) (on peut directement lancer le script bash `run-rp-stepLoadBalancing.sh`).
+
+Nous lançons notre utilitaire à l'adresse http://demo.res.ch:8080/balancer-manager et nous nous sur la case _Elected_ de notre serveur dynamique.
+
+![stepLoadBalancingRRSS-step1](img-rapport/stepLoadBalancingRRSS-step1.PNG)
+
+Lorsqu'on lance des pages à l'adresse http://demo.res.ch:8080, (si l'on refresh la page `\balancer-manager` pour chaque nouvelle page lancée (ou rafraichie) nous remaqueons que cette argument (ce compteur) augmente de manière altérneée entre les 2 serveurs. 
+
+Si l'on arrête (`docker kill`) l'un des 2 serveurs dynamiques, on remarque que le compteur du serveur actif augmente de manière linéaire.
+
+Grâce à cela, on a pu vérifier que notre algorithme de _Round-Robin_ fonctionne.
+
+<u>Sticky session</u>
+
+Le test de _Sticky sessions_ s'effectue en créeant une 2ème image du serveur statique avec la page _index.html_ modifiée (titres, paragraphes, etc..). On va commencer par charger une page de l'adresse
+http://demo.res.ch:8080 , puis nous supprimons les *cookies*. Nous rechargeons la page et remaqueons alors que la page n'as plus de serveur particulier "sauvegardé" et donc que le contenu pouvais être modifié si il choisissait le serveur statique ayant été créé à partir de l'image modifiée.
+
+Finalement, dans la page de de l'utilitaire du load-balancer http://demo.res.ch:8080/balancer-manager, nous remaquons que le paramètre _StickySession_ contient le ROUTEID prédéfini dans `template-config.php`
+
+![stepLoadBalancingRRSS-step2](C:\Users\Christian Zaccaria\Documents\Git\RES\Teaching-HEIGVD-RES-2020-Labo-HTTPInfra\img-rapport\stepLoadBalancingRRSS-step2.PNG)
 
 ## Dynamic cluster management
