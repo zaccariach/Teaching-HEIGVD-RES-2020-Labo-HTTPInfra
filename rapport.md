@@ -2,17 +2,18 @@
 
 **Auteurs : Christian Zaccaria, Nenad Rajic**
 
-- [Instructions et Objectifs](#Instructions-et-Objectifs)
-- [Step 1: Static HTTP server with apache httpd](#Step-1:-Static-HTTP-server-with-apache-httpd)
-- [Step 2: Dynamic HTTP server with express.js](#Step-2:-Dynamic-HTTP-server-with-express.js)
-- [Step 3: Reverse proxy with apache (static configuration)](#Step-3:-Reverse-proxy-with-apache-(static-configuration))
-- [Step 4: AJAX requests with JQuery](#Step-4:-AJAX-requests-with-JQuery)
-- [Step 5: Dynamic reverse proxy configuration](#Step-5:-Dynamic-reverse-proxy-configuration)
-- [Additional steps](#Additional-steps)
-	- [Management UI](#Management-UI)
-	- [Load balancing: multiple server nodes](#Load-balancing:-multiple-server-nodes)
-	- [Load balancing: round-robin vs sticky sessions](#Load-balancing:-round-robin-vs-sticky-sessions)
-	- [Dynamic cluster management ](#Dynamic-cluster-management )
+- [RES 2020 Labo HTTP-Infra](#res-2020-labo-http-infra)
+- [Instructions et Objectifs](#instructions-et-objectifs)
+- [Step 1: Static HTTP server with apache httpd](#step-1-static-http-server-with-apache-httpd)
+- [Step 2: Dynamic HTTP server with express.js](#step-2-dynamic-http-server-with-expressjs)
+- [Step 3: Reverse proxy with apache (static configuration)](#step-3-reverse-proxy-with-apache-static-configuration)
+- [Step 4: AJAX requests with JQuery](#step-4-ajax-requests-with-jquery)
+- [Step 5: Dynamic reverse proxy configuration](#step-5-dynamic-reverse-proxy-configuration)
+- [Additional steps](#additional-steps)
+  - [Management UI](#management-ui)
+  - [Load balancing: multiple server nodes](#load-balancing-multiple-server-nodes)
+  - [Load balancing: round-robin vs sticky sessions](#load-balancing-round-robin-vs-sticky-sessions)
+  - [Dynamic cluster management](#dynamic-cluster-management)
 
 
 
