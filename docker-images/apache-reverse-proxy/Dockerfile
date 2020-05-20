@@ -8,5 +8,5 @@ COPY conf/ /etc/apache2
 COPY apache2-foreground /usr/local/bin/
 RUN cd /usr/local/bin/ && dos2unix apache2-foreground
 
-RUN a2enmod proxy proxy_http
+RUN a2enmod proxy proxy_http proxy_balancer lbmethod_byrequests
 RUN a2ensite 000-* 001-*
