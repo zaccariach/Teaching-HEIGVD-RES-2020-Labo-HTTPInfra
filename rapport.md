@@ -341,9 +341,9 @@ Afin de vous montrer le bon fonctionnement de notre infrastructure, nous avons d
 ![ajax-queries](img-rapport/ajax-queries.gif)
 
 
-
 # Step 5: Dynamic reverse proxy configuration
 
+fb-dynamic-configuration
 <u>**But**</u>
 
 Pourvoir remplacer la configuration "hardcodée" afin de la rendre dynamique en passant les configuration IP via le flag `-e` de la commande `docker run` ainsi que exécuter un script personnalisée permettant de récupérer les variables environnement afin de générer un fichier de configuration.
@@ -527,6 +527,17 @@ RUN a2enmod proxy proxy_http proxy_balancer lbmethod_byrequests
 
 Nous devons ensuite modifier notre fichier *config-template.php* afin d'y insérer plusieurs adresses IP pour un serveur donné (adresses IP des serveurs statiques et dynamique). Ceci permettra alors de répartir la charge sur un autre serveur dans le cas qu'un serveur soit défaillant.
 
+Nous avons en outre ajouter un "utilitaire" afin de vérifier l'état du load-balancing.
+
+```
+<Location /balancer-manager>
+	SetHandler balancer-manager
+</Location>
+ProxyPass /balancer-manager !
+```
+
+Le fichier `config-template.php` ressemble à ceci :
+
 ```php
 <?php
  	$dynamic_app1 = getenv('DYNAMIC_APP1');
@@ -537,6 +548,11 @@ Nous devons ensuite modifier notre fichier *config-template.php* afin d'y insér
 
 <VirtualHost *:80>
  ServerName demo.res.ch
+    
+    <Location /balancer-manager>
+      SetHandler balancer-manager
+    </Location>
+    ProxyPass /balancer-manager !
 
  <Proxy "balancer://dynamic_app">
     BalancerMember 'http://<?php print "$dynamic_app1"?>'
@@ -583,6 +599,10 @@ docker kill express_dynamic2
 Nous vérifions que le site est toujours fonctionnel après avoir effectué un rafraîchissement de la page (CTRL + F5).
 
 ![stepLoadBalancing-website](img-rapport/stepLoadBalancing-website.PNG)
+
+Il est aussi possible de vérifier que la charge a bien été placé sur un autre serveur en allant à cette adresse : http://demo.res.ch:8080/balancer-manager
+
+![stepLoadBalancing-management](img-rapport/stepLoadBalancing-management.PNG)
 
 Finalement, comme pour le _STEP 5_, nous avons crée un script permettant d'automatiser la création de containers pour cette infrastructure.
 

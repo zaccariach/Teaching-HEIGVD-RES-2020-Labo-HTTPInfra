@@ -11,6 +11,7 @@
     <Location /balancer-manager>
       SetHandler balancer-manager
     </Location>
+  
     ProxyPass /balancer-manager !
  
 	Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
