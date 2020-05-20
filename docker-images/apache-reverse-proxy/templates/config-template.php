@@ -8,6 +8,12 @@
 <VirtualHost *:80>
  ServerName demo.res.ch
  
+    <Location /balancer-manager>
+      SetHandler balancer-manager
+    </Location>
+
+    ProxyPass /balancer-manager !
+ 
  	#ErrorLog ${APACHE_LOG_DIR}/error.log
 	#CustomLog ${APACHE_LOG_DIR}/access.log combined
 
