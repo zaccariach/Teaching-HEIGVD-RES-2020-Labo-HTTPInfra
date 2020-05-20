@@ -2,6 +2,8 @@
 
 **Auteurs : Christian Zaccaria, Nenad Rajic**
 
+[TOC]
+
 # Instructions et Objectifs
 L'objectif de ce laboratoire est de pouvoir se familiariser avec les outils logiciels qui permettent de construire une infrastructure Web : c'est à dire un environnement permettant de fournir du contenu statique et dynamique aux navigateurs web. Pour cela, nous utiliserons _Serveur Apache httpd_ (pouvant agir à la fois comme serveur HTTP et reverse proxy) ainsi que _express.js_ (framework JS facilitant l'écriture d'applications web dynamiques).
 
@@ -421,7 +423,7 @@ http://demo.res.ch:8080/
 
 Finalement, ne trouvant pas que cette étape est totalement "dynamique", nous avons décidé de créer un script *bash* permettant de démarrer les trois containers (`apache_static, express_dynamic et apache_rp`) et d'automatiser la recherche de l'adresse IP des deux serveurs. Ceci permet d'ajouter un petit supplément à ce laboratoire ainsi qu'à la partie suivie par des podcasts ! 
 
-Voici le script créé (testé et approuvé sur Ubuntu ainsi que Windows)
+Voici le script créé `run-rp-step5.sh` (testé et approuvé sur Ubuntu ainsi que Windows)
 
 ```
 #! /bin/bash
@@ -445,11 +447,7 @@ echo "Reverse proxy IP: $proxyIP"
 read -p "Press to exit"
 ```
 
-# Additionals steps
-
-## Load balancing: multiple server nodes
-## Load balancing: round-robin vs sticky sessions
-## Dynamic cluster management
+# Additional steps
 ## Management UI
 
 Afin de ne pas re-inventer la roue, nous avons décidé de rechercher sur le web si des images / containers permettent de mettre en place un outil regroupant l'accès ainsi que la gestion des différents containers présent sur notre machine à l'aide d'une GUI.
@@ -458,11 +456,13 @@ Après différentes recherches, nous avons décidé d'utiliser l'outil nommé _P
 
 <u>**Réalisation**</u>
 
-Nous trouvé ce lien, nous permettant de mettre en place l'outil très facilement : https://gist.github.com/SeanSobey/344edd228922ffd4266ae7d451421ab6
+Nous avons créé une branche *Management-UI* à partir de la branche *fb-dynamic-configuration.* 
+
+Nous avons trouvé ce lien, nous permettant de mettre en place l'outil très facilement : https://gist.github.com/SeanSobey/344edd228922ffd4266ae7d451421ab6
 
 1. Vérifier que l'option daemon sans TLS est bien activée.
 
-   ![verifiy-daemon](img-rapport/verifiy-daemon.PNG)
+   ![stepUI-verifiy-daemon](img-rapport/stepUI-verifiy-daemon.PNG)
 
 2. Créer un volume docker.
 
@@ -470,7 +470,7 @@ Nous trouvé ce lien, nous permettant de mettre en place l'outil très facilemen
 docker volume create portainer_data
 ```
 
-3. Démarrage du container avec l'image *Portainer* (nous avons choisi la version avec une authentifcation nécessaire).
+3. Démarrage du container avec l'image *Portainer* (nous avons choisi la version avec une authentification nécessaire).
 
 ```  
 docker run -d -p 3040:9000 --name portainer --restart=always -v portainer_data:/data portainer/portainer -H tcp://docker.for.win.localhost:2375
@@ -487,3 +487,120 @@ Nous arrivons sur une page permettant de créer un utilisateur. (Nous avons cré
 Nous arrivons alors dans une page permettant de gérer nos différents containers /images ainsi que notre environnement _Docker_.
 
 ![stepUI-GUI](img-rapport/stepUI-GUI.PNG)
+
+## Load balancing: multiple server nodes
+
+<u>**But**</u> 
+
+Mise en place un mécanisme permettant en cas de défaillance d'un des serveurs (dans notre cas de containers) d'avoir toujours accès au site (la charge est donc repartie sur un autre serveur).
+
+**Réalisation**: 
+
+Nous avons créé une branche *fb-loadBalancing-mutiple* à partir de la branche *Management-UI*. 
+
+Après avoir rechercher dans la documentation officielle de _Apache httpd_, nous avons trouvé ceci https://httpd.apache.org/docs/2.4/mod/mod_proxy_balancer.html.
+
+Il est défini que afin d'implémenter la répartition de charge, il est nécessaire d'avoir 3 modules activés :
+
+* *proxy* (déjà implémenté)
+* *proxy_balancer* (nécessaire à la répartition de charge)  
+* Un algorithme permettant de planifier la répartition de charge : nous avons choisi un algorithme se basant sur le comptage des requêtes --> *lbmethod_byrequests* (définit l'algorithme de planification de la répartition de charge). 
+
+Par conséquent, nous avons du adapté dans le *Dockerfile* du serveur proxy.
+
+```dockerfile
+RUN a2enmod proxy proxy_http proxy_balancer lbmethod_byrequests
+```
+
+Nous devons ensuite modifier notre fichier *config-template.php* afin d'y insérer plusieurs adresses IP pour un serveur donné (adresses IP des serveurs statiques et dynamique). Ceci permettra alors de répartir la charge sur un autre serveur dans le cas qu'un serveur soit défaillant.
+
+```php
+<?php
+ 	$dynamic_app1 = getenv('DYNAMIC_APP1');
+ 	$dynamic_app2 = getenv('DYNAMIC_APP2');
+    $static_app1 = getenv('STATIC_APP1');
+    $static_app2 = getenv('STATIC_APP2');
+?>
+
+<VirtualHost *:80>
+ ServerName demo.res.ch
+
+ <Proxy "balancer://dynamic_app">
+    BalancerMember 'http://<?php print "$dynamic_app1"?>'
+    BalancerMember 'http://<?php print "$dynamic_app2"?>'
+ </Proxy>
+ 
+ <Proxy "balancer://static_app">
+    BalancerMember 'http://<?php print "$static_app1"?>'
+    BalancerMember 'http://<?php print "$static_app2"?>'
+ </Proxy>
+
+ ProxyPass '/api/animals/' 'balancer://dynamic_app/'
+ ProxyPassReverse '/api/animals/' 'balancer://dynamic_app'
+ 
+ ProxyPass '/' 'balancer://static_app/'
+ ProxyPassReverse '/' 'balancer://static_app/'
+</VirtualHost>
+```
+
+Finalement, il faut re-build à nouveau l'image `apache_rp` avec le nouveau *Dockerfile*.
+
+**<u>Test</u>**
+
+On lance 2 serveurs *apache_static* et 2 serveurs *express_dynamic*. 
+```
+docker run -d --name apache_static1 res/apache_php
+docker run -d --name apache_static2 res/apache_php
+docker run -d --name express_dynamic1 res/express_animals
+docker run -d --name express_dynamic2 res/express_animals
+```
+A l'aide de `docker inspect` , on récupère leurs adresses IP afin de les inscrire dans la commande qui suit pour le démarrage du container *apache_rp* :
+
+```bash
+docker run -d -e STATIC_APP1=172.17.0.2:80 -e STATIC_APP2=172.17.0.3:80 -e DYNAMIC_APP1=172.17.0.4:3000 -e DYNAMIC_APP2=172.17.0.5:3000 --name apache_rp -p 9090:80 res/apache_rp
+```
+
+Nous vérifions que l'accès au site est bien possible (à l'aide du navigateur) et ensuite tuons 2 containers (1 pour les serveurs statiques et 1 pour les serveurs dynamique) à l'aide de les commandes suivantes.
+
+```bash
+docker kill apache_static1
+docker kill express_dynamic2
+```
+
+Nous vérifions que le site est toujours fonctionnel après avoir effectué un rafraîchissement de la page (CTRL + F5).
+
+![stepLoadBalancing-website](img-rapport/stepLoadBalancing-website.PNG)
+
+Finalement, comme pour le _STEP 5_, nous avons crée un script permettant d'automatiser la création de containers pour cette infrastructure.
+
+Voici le script créé `run-rp-stepLoadBalancing.sh` (testé et approuvé sur Ubuntu ainsi que Windows)
+
+```
+#! /bin/bash
+
+docker kill $(docker ps -q) > /dev/null
+docker rm $(docker ps -a -q)  > /dev/null
+
+staticContainer1=$(docker run -d --name apache_static1 res/apache_php)
+staticContainer2=$(docker run -d --name apache_static2 res/apache_php)
+dynamicContainer1=$(docker run -d --name dynamic_express1 res/express_animals)
+dynamicContainer2=$(docker run -d --name dynamic_express2 res/express_animals)
+
+staticIP1=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $staticContainer1)
+staticIP2=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $staticContainer2)
+dynamicIP1=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dynamicContainer1)
+dynamicIP2=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dynamicContainer2)
+
+
+proxyName=$(docker run -d --name apache_rp -e STATIC_APP1=$staticIP1:80 -e STATIC_APP2=$staticIP2:80 -e DYNAMIC_APP1=$dynamicIP1:3000 -e DYNAMIC_APP2=$dynamicIP2:3000 -p 9090:80 res/apache_rp)
+
+proxyIP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $proxyName)
+
+echo "Infra with reverse proxy and load balancing is done !"
+echo "Reverse proxy IP: $proxyIP"
+read -p "Press to exit"
+```
+
+## Load balancing: round-robin vs sticky sessions
+
+## Dynamic cluster management
