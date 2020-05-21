@@ -36,7 +36,7 @@ Installer un serveur apache (httpd) et le configurer tout en y ajoutant du conte
 
 <u>**Réalisation**</u> 
 
-Pour commencer, nous crééons une branche à partir du master nommée _fb-apache-static_, ceci afin de nous permettre de mettre en place cette première étape du laboratoire. Pour cette réalisation, nous avons créé un fichier Dockerfile et y avons écrit les lignes nous permettant de récupérer une image du _DockerHub_ contenant le serveur **httpd** et **PHP** mis à disposition : nous avons pris donc l'image officielle de **PHP** incluant aussi le server **httpd** 
+Pour commencer, nous créons une branche à partir du master nommée _fb-apache-static_, ceci afin de nous permettre de mettre en place cette première étape du laboratoire. Pour cette réalisation, nous avons créé un fichier Dockerfile et y avons écrit les lignes nous permettant de récupérer une image du _DockerHub_ contenant le serveur **httpd** et **PHP** mis à disposition : nous avons pris donc l'image officielle de **PHP** incluant aussi le server **httpd** 
 
 Voici donc notre fichier Dockerfile:
 
@@ -59,9 +59,9 @@ docker build -t res/apache_php .
 docker run -d -p 9090:80 res/apache_php
 ```
 
-Le paramètre `-d` n'est pas vraiment nécessaire (pas présent dans les podcasts), mais nous préferons l'utiliser afin de lancer le container en arrière plan. 
+Le paramètre `-d` n'est pas vraiment nécessaire (pas présent dans les podcasts), mais nous préférons l'utiliser afin de lancer le container en arrière plan. 
 
-Il faut ensuite ouvrir un navigateur web, taper: `http://localhost:9090/` et le contenu web static s'affiche. 
+Il faut ensuite ouvrir un navigateur web, taper: `http://localhost:9090/` et le contenu web statique s'affiche. 
 
 ![step1-website](img-rapport/step1-website.PNG)
 
@@ -83,7 +83,7 @@ COPY src /opt/app
 CMD ["node", "opt/app/index.js"]
 ```
 
-La premièrer ligne permet de récupérer l'image Node version 12.16 depuis le *DockerHub* (dernière version LTS de **Node.js**), puis copier le contenu du dossier local `src` dans le dossier `/opt/app` du container Docker. Finalement la dernière ligne va nous permettre de lancer la commande `node index.js` à chaque démarrage du container.
+La première ligne permet de récupérer l'image Node version 12.16 depuis le *DockerHub* (dernière version LTS de **Node.js**), puis copier le contenu du dossier local `src` dans le dossier `/opt/app` du container Docker. Finalement la dernière ligne va nous permettre de lancer la commande `node index.js` à chaque démarrage du container.
 
 Ensuite, à l'emplacement du fichier Dockerfile, nous avons créé un dossier `src` et y avons initialisé un environnement **NPM** en tapant `npm init` (insèrer uniquement le nom, version et auteur) dans une invite de commande. Il est imporant de noter que si on utilise Windows, il est nécessaire d'installer **Node.js**, téléchargeable à l'adresse : https://nodejs.org/fr/
 
@@ -131,7 +131,7 @@ function generateAnimals(){
 }
 ```
 
-Nous voyons ici que l'on écoute les requêtes sur le port 3000 et qu'à toute requête de type *GET* sur la cible '/', nous y générons un tableau avec un nombre d'animaux aléatoire (1 à 10) possédant une race, un nom, un genre, un age et un pays. Ensuite, ce tableau au format _json_ est envoyé en réponse au client connecté sur le port 3000 (à l'aide de telnet ou d'un naviagateur web).
+Nous voyons ici que l'on écoute les requêtes sur le port 3000 et qu'à toute requête de type *GET* sur la cible '/', nous y générons un tableau avec un nombre d'animaux aléatoire (1 à 10) possédant une race, un nom, un genre, un âge et un pays. Ensuite, ce tableau au format _json_ est envoyé en réponse au client connecté sur le port 3000 (à l'aide de telnet ou d'un navigateur web).
 
 <u>**Test**</u>  
 
@@ -156,7 +156,7 @@ Mise en place d'un reverse proxy servant comme point d'entrée dans l'infrastruc
 
 <u>**Réalisation**</u> 
 
-En premier, nous avons créé une branche *fb-apache-reverse-proxy* à partir de la branche *fb-express-dynamic.* Deux containers sont lancés : l'un étant le serveur web static et l'autre le serveur web dynamique à l'aide des images générées aux précédentes étapes. 
+En premier, nous avons créé une branche *fb-apache-reverse-proxy* à partir de la branche *fb-express-dynamic.* Deux containers sont lancés : l'un étant le serveur web statique et l'autre le serveur web dynamique à l'aide des images générées aux précédentes étapes. 
 
 Les commandes sont les suivantes:
 
@@ -234,7 +234,7 @@ Une dernière modification a été nécessaire sur notre machine, à savoir le f
 
 <u>**Test**</u> 
 
-On ouvre un navigateur web et de taper les lignes suivantes pour être redirigé soit sur le site web static soit sur notre tableau d'animaux.
+On ouvre un navigateur web et de taper les lignes suivantes pour être redirigé soit sur le site web statique soit sur notre tableau d'animaux.
 
 ```
 http://demo.res.ch:8080/
@@ -709,6 +709,15 @@ http://demo.res.ch:8080 , puis nous supprimons les *cookies*. Nous rechargeons l
 
 Finalement, dans la page de de l'utilitaire du load-balancer http://demo.res.ch:8080/balancer-manager, nous remaquons que le paramètre _StickySession_ contient le ROUTEID prédéfini dans `template-config.php`
 
-![stepLoadBalancingRRSS-step2](C:\Users\Christian Zaccaria\Documents\Git\RES\Teaching-HEIGVD-RES-2020-Labo-HTTPInfra\img-rapport\stepLoadBalancingRRSS-step2.PNG)
+![stepLoadBalancingRRSS-step2](img-rapport/stepLoadBalancingRRSS-step2.PNG)
 
 ## Dynamic cluster management
+
+<u>**But**</u>
+
+Développement d'une solution de cluster dynamique afin de permettre que les différents serveurs puissent apparaitre / disparaître à tout instant donné. Ceci va avoir pour but alors de mettre à jour de façon dynamique le load balancer afin qu'il puisse savoir quels sont les organes actifs de son infrastructure.
+
+<u>**Réalisation**</u>
+
+Nous créons la branche _fb-dynamic-cluster_ à partir de la branche précédente  *fb-loadBalancing-rr-ss*. 
+
