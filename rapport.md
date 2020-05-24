@@ -707,7 +707,7 @@ Grâce à cela, on a pu vérifier que notre algorithme de _Round-Robin_ fonction
 Le test de _Sticky sessions_ s'effectue en créeant une 2ème image du serveur statique avec la page _index.html_ modifiée (titres, paragraphes, etc..). On va commencer par charger une page de l'adresse
 http://demo.res.ch:8080 , puis nous supprimons les *cookies*. Nous rechargeons la page et remaqueons alors que la page n'as plus de serveur particulier "sauvegardé" et donc que le contenu pouvais être modifié si il choisissait le serveur statique ayant été créé à partir de l'image modifiée.
 
-Finalement, dans la page de de l'utilitaire du load-balancer http://demo.res.ch:8080/balancer-manager, nous remaquons que le paramètre _StickySession_ contient le ROUTEID prédéfini dans `template-config.php`
+Finalement, dans la page de de l'utilitaire du load-balancer http://demo.res.ch:8080/balancer-manager, nous remarquons que le paramètre _StickySession_ contient le ROUTEID prédéfini dans `template-config.php`
 
 ![stepLoadBalancingRRSS-step2](img-rapport/stepLoadBalancingRRSS-step2.PNG)
 
@@ -721,3 +721,80 @@ Développement d'une solution de cluster dynamique afin de permettre que les dif
 
 Nous créons la branche _fb-dynamic-cluster_ à partir de la branche précédente  *fb-loadBalancing-rr-ss*. 
 
+Nous avons trouvé _Traefik_ permettant de créer un cluster de nos différents serveurs statiques / dynamiques. De plus, selon la configuration effectuée, il peut servir comme _reverse proxy_. Pour ce faire, nous avons décidé de créer un fichier _docker-compose_, permettant de "regrouper" toute notre infrastructure. C'est dans ce fichier que nous allons définir l'entier de notre infrastructure : _serveur statique / dynamique et reverse_proxy_.
+
+Voici notre fichier `docker-compose.yml`
+
+```bash
+version: "3"
+services:
+  static-apache:
+    image: res/apache_php
+    build:
+      context: ../apache-php-image
+      dockerfile: Dockerfile
+    expose:
+      - "80"
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:localhost"
+      - "traefik.port=80"
+      - "traefik.backend.loadbalancer.stickiness=true"
+      - "traefik.backend.loadbalancer.stickiness.cookieName=stickyCookie"
+    networks:
+      - web
+      
+  dynamic-express:
+    image: res/express_animals
+    build:
+      context: ../express-image
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    labels:
+     - "traefik.docker.network=web"
+     - "traefik.frontend.rule=Host:localhost; PathPrefixStrip:/api/animals/"
+     - "traefik.port=3000"
+    networks:
+      - web
+      
+  rp:
+    image: traefik
+    restart: always
+    command: --api --docker --api.insecure=true --providers.docker --providers.docker.exposedbydefault=false
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $PWD/traefik.toml:/traefik.toml
+    networks:
+      - web
+      
+networks:
+  web:
+    external: true
+```
+
+Et notre fichier `traefik.toml`
+```
+defaultEntryPoints = ["http"]
+
+[web]
+# Port for the status page
+address = ":8080"
+
+# Entrypoints, http and https
+[entryPoints]
+  # http should be redirected to https
+  [entryPoints.http]
+  address = ":80"
+
+
+# Enable Docker configuration backend
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "demo.res.ch"
+watch = true
+exposedbydefault = false
+```
