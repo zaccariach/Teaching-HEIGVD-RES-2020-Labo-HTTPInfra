@@ -776,7 +776,10 @@ networks:
     external: true
 ```
 
-Et notre fichier `traefik.toml`
+Nous pouvons voir les différents points (serveur statique et dynamique) implémentés avec tous les points des étapes précédentes.
+
+De plus, nous avons notre _Reverse proxy_ de `Traefik`. Ce dernier prend alors un fichier de configuration en paramètre `traefik.toml` , le voici :
+
 ```
 defaultEntryPoints = ["http"]
 
@@ -798,3 +801,21 @@ domain = "demo.res.ch"
 watch = true
 exposedbydefault = false
 ```
+
+Ce fichier permet à `traefik` définir un point d'entrée dans notre infrastructure ainsi que différents paramètres assez explicites.
+
+**<u>Test</u>**
+
+Il est possible de lancer le `docker-compose` directement dans le dossier `traefik` présent dans l'arborescence à l'aide de la commande `docker-compose up` (ou avec l'option `-d` pour ne pas voir les logs)
+
+![stepClusterDynamic](img-rapport/stepClusterDynamic.PNG)
+
+De plus, il est possible de répliquer le nombre de serveurs que l'on souhaite en utilisant la commande `docker-compose scale <NOM DU CONTAINER DANS LE DOCKER-COMPOSE>=X  ` (X étant un nombre).
+
+![stepClusterDynamic-scale](img-rapport/stepClusterDynamic-scale.PNG)
+
+Finalement, on va essayer accéder au site http://demo.res.ch afin de vérifier notre infrastructure.
+
+![stepClusterDynamic-problem](img-rapport/stepClusterDynamic-problem.PNG)
+
+On remarque ici que la page n'est pas trouvée. Actuellement nous ne savons pas pouvoir cette dernière n'est pas trouvée. Cependant, nous pensons que le problème puisse venir d'une mauvaise redirection de port / configuration du `traefik.toml`.
