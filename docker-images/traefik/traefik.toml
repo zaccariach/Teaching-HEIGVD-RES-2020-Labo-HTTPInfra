@@ -4,6 +4,10 @@ defaultEntryPoints = ["http"]
 # Port for the status page
 address = ":8080"
 
+[api]
+  dashboard = true
+  insecure = true
+
 # Entrypoints, http and https
 [entryPoints]
   # http should be redirected to https
