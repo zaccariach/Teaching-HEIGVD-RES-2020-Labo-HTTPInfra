@@ -1,0 +1,23 @@
+defaultEntryPoints = ["http"]
+
+[web]
+# Port for the status page
+address = ":8080"
+
+[api]
+  dashboard = true
+  insecure = true
+
+# Entrypoints, http and https
+[entryPoints]
+  # http should be redirected to https
+  [entryPoints.http]
+  address = ":80"
+
+
+# Enable Docker configuration backend
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "demo.res.ch"
+watch = true
+exposedbydefault = false

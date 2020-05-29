@@ -1,0 +1,48 @@
+version: "3"
+services:
+  static-apache:
+    image: res/apache_php
+    build:
+      context: ../apache-php-image
+      dockerfile: Dockerfile
+    expose:
+      - "80"
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:localhost"
+      - "traefik.port=80"
+      - "traefik.backend.loadbalancer.stickiness=true"
+      - "traefik.backend.loadbalancer.stickiness.cookieName=stickyCookie"
+    networks:
+      - web
+      
+  dynamic-express:
+    image: res/express_animals
+    build:
+      context: ../express-image
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    labels:
+     - "traefik.docker.network=web"
+     - "traefik.frontend.rule=Host:localhost; PathPrefixStrip:/api/animals/"
+     - "traefik.port=3000"
+    networks:
+      - web
+      
+  rp:
+    image: traefik
+    restart: always
+    command: --api --docker --api.insecure=true
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $PWD/traefik.toml:/traefik.toml
+    networks:
+      - web
+      
+networks:
+  web:
+    external: true
