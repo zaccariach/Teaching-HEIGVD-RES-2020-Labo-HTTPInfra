@@ -787,6 +787,10 @@ defaultEntryPoints = ["http"]
 # Port for the status page
 address = ":8080"
 
+[api]
+  dashboard = true
+  insecure = true
+
 # Entrypoints, http and https
 [entryPoints]
   # http should be redirected to https
@@ -814,8 +818,12 @@ De plus, il est possible de répliquer le nombre de serveurs que l'on souhaite e
 
 ![stepClusterDynamic-scale](img-rapport/stepClusterDynamic-scale.PNG)
 
+Lorsqu'on essaie d'atteindre le site http://localhost:8080, il est possible d'atteindre le _dashboard_ du container _traefik_.
+
+![stepClusterDynamic-traefik](img-rapport/stepClusterDynamic-traefik.PNG)
+
 Finalement, on va essayer accéder au site http://demo.res.ch afin de vérifier notre infrastructure.
 
 ![stepClusterDynamic-problem](img-rapport/stepClusterDynamic-problem.PNG)
 
-On remarque ici que la page n'est pas trouvée. Actuellement nous ne savons pas pouvoir cette dernière n'est pas trouvée. Cependant, nous pensons que le problème puisse venir d'une mauvaise redirection de port / configuration du `traefik.toml`.
+On remarque ici que la page n'est pas trouvée. Actuellement nous ne savons pas pouvoir cette dernière n'est pas trouvée. Cependant, nous pensons que le problème puisse venir d'une mauvaise redirection de port / configuration du `traefik.toml` ou qu'il faut sécuriser l'api. Malheureusement le manque de temps en cette fin de semestre ne nous permet pas d'approfondir ce sujet.
